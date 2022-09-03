@@ -8,8 +8,9 @@
 */
 
 /* Esp32_Mic
+support esp32 (esp32s2 and esp32s3 might can be supported, but I don't have those devices)
 require esp-idf v4.4.2
-firmware version: v1.0
+firmware version: v1.1-beta.0
 */
 
 #include <stdio.h>
@@ -56,14 +57,13 @@ static const char filename_prefix[] = "A_"; // change that to identify different
 #define I2S_DI_IO (GPIO_NUM_27)
 
 // setting of adc for battery level
-#define NO_OF_SAMPLES 6                             // Multisampling
+#define NO_OF_SAMPLES 3                             // Multisampling, set less to reduce occupancy, may be more inaccurate
 static const adc_channel_t channel = ADC_CHANNEL_6; // GPIO34 if ADC1, GPIO14 if ADC2
 static const adc_bits_width_t width = ADC_WIDTH_BIT_12;
 static const adc_atten_t atten = ADC_ATTEN_DB_11;
 
 // esp timer for battery level
-static void battery_level_detect(void *args);
-static void check_battery_level(void);
+static void check_battery_level(void *args);
 
 // setting of sdmmc
 #define SD_MOUNT_POINT "/sdcard"
@@ -123,10 +123,6 @@ void mount_sdcard(void)
         ret = esp_vfs_fat_sdmmc_mount(SD_MOUNT_POINT, &host, &slot_config, &mount_config, &card);
     }
     ESP_LOGI(TAG, "Filesystem mounted");
-
-    // Card has been initialized, print its properties
-    /* useless */
-    sdmmc_card_print_info(stdout, card);
 }
 
 void record_wav(void)
@@ -180,11 +176,12 @@ void record_wav(void)
 
     // Start recording
     ESP_LOGI(TAG, "Recording");
-    int unsaved_time = 0;
+    char led2_state = 1;
+    char unsaved_time = 0; // if it is not enough, set it as short or int
     while (1)
     {
         unsaved_time = 0;
-        while (unsaved_time <= 30)
+        while (unsaved_time <= 25)
         {
             // Read the RAW samples from the microphone
             i2s_read(CONFIG_EXAMPLE_I2S_CH, (char *)i2s_readraw_buff, SAMPLE_SIZE, &bytes_read, 100);
@@ -194,25 +191,27 @@ void record_wav(void)
         }
         fflush(f);
         fsync(fileno(f));
+        led2_state = !led2_state;
+        gpio_set_level(STATE_LED2, led2_state); // blink led2 to identify running
     }
 }
 
 void init_microphone(void)
 {
-    // Set the I2S configuration as PDM and 16bits per sample
     i2s_config_t i2s_config = {
         .mode = I2S_MODE_MASTER | I2S_MODE_RX,
         .sample_rate = CONFIG_EXAMPLE_SAMPLE_RATE,
-        .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
-        .channel_format = I2S_CHANNEL_FMT_ONLY_RIGHT,
+        .bits_per_sample = I2S_BITS_PER_SAMPLE_24BIT,
+        .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,
         .communication_format = I2S_COMM_FORMAT_STAND_I2S,
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL2,
         .dma_buf_count = 4,
         .dma_buf_len = 1024,
         .use_apll = true,
+        .fixed_mclk = 12288000,
     };
 
-    // Set the pinout configuration (set using menuconfig)
+    // Set the pinout configuration
     i2s_pin_config_t pin_config = {
         .mck_io_num = I2S_PIN_NO_CHANGE,
         .bck_io_num = I2S_BCK_IO,
@@ -224,15 +223,9 @@ void init_microphone(void)
     // Call driver installation function before any I2S R/W operation.
     ESP_ERROR_CHECK(i2s_driver_install(CONFIG_EXAMPLE_I2S_CH, &i2s_config, 0, NULL));
     ESP_ERROR_CHECK(i2s_set_pin(CONFIG_EXAMPLE_I2S_CH, &pin_config));
-    ESP_ERROR_CHECK(i2s_set_clk(CONFIG_EXAMPLE_I2S_CH, CONFIG_EXAMPLE_SAMPLE_RATE, I2S_BITS_PER_SAMPLE_16BIT, I2S_CHANNEL_MONO));
 }
 
-static void battery_level_detect(void *args)
-{
-    check_battery_level();
-}
-
-static void check_battery_level(void)
+static void check_battery_level(void *args)
 {
     ESP_LOGI(TAG, "Detect battery level");
 
@@ -269,11 +262,11 @@ void init_battery_adc(void)
     adc1_config_channel_atten(channel, atten);
 
     // Check first
-    check_battery_level();
+    check_battery_level(NULL);
 
     ESP_LOGI(TAG, "Create timer to detect battery level every 6 mins");
     const esp_timer_create_args_t periodic_timer_args = {
-        .callback = &battery_level_detect,
+        .callback = &check_battery_level,
         /* name is optional, but may help identify the timer when debugging */
         .name = "adc_timer",
     };
@@ -314,14 +307,4 @@ void app_main(void)
     ESP_LOGI(TAG, "Starting recording");
     // Start Recording
     record_wav();
-
-    while (true)
-    {
-        gpio_set_level(STATE_LED1, 1);
-        gpio_set_level(STATE_LED2, 0);
-        usleep(250000);
-        gpio_set_level(STATE_LED1, 0);
-        gpio_set_level(STATE_LED2, 1);
-        usleep(250000);
-    }
 }
