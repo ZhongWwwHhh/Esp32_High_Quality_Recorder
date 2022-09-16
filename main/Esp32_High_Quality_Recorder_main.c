@@ -10,7 +10,7 @@
 /* Esp32_Mic
 support esp32 (esp32s2 and esp32s3 might can be supported, but I don't have those devices)
 require esp-idf v4.4.2
-firmware version: v1.1-beta.0
+firmware version: v1.1
 */
 
 #include <stdio.h>
