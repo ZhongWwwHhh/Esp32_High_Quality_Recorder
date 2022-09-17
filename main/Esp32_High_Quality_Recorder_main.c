@@ -8,9 +8,10 @@
 */
 
 /* Esp32_Mic
+PCB design at: https://github.com/ZhongWwwHhh/Esp32_High_Quality_Recorder_PCB
 support esp32 (esp32s2 and esp32s3 might can be supported, but I don't have those devices)
 require esp-idf v4.4.2
-firmware version: v1.1
+firmware version: v2.0-beta.0
 */
 
 #include <stdio.h>
@@ -39,22 +40,11 @@ static const char *TAG = "Esp32_Mic";
 #define BATTERY_MODE
 
 // GPIO for leds
-#define STATE_LED1 (GPIO_NUM_22)
-#define STATE_LED2 (GPIO_NUM_23)
+#define STATE_LED1 CONFIG_STATE_LED1_IO
+#define STATE_LED2 CONFIG_STATE_LED2_IO
 
-// filename prefix
-static const char filename_prefix[] = "A_"; // change that to identify different devices
-
-// setting of wav and i2s
-#define NUM_CHANNELS (1) // For mono recording only!
-#define SAMPLE_SIZE (CONFIG_EXAMPLE_BIT_SAMPLE * 1024)
-#define BYTE_RATE (CONFIG_EXAMPLE_SAMPLE_RATE * (CONFIG_EXAMPLE_BIT_SAMPLE / 8)) * NUM_CHANNELS
-
-// set i2s pins
-#define I2S_BCK_IO (GPIO_NUM_26)
-#define I2S_WS_IO (GPIO_NUM_25)
-#define I2S_DO_IO (I2S_PIN_NO_CHANGE)
-#define I2S_DI_IO (GPIO_NUM_27)
+// setting of i2s
+#define SAMPLE_SIZE (CONFIG_I2S_BIT_SAMPLE * 1024)
 
 // setting of adc for battery level
 #define NO_OF_SAMPLES 3                             // Multisampling, set less to reduce occupancy, may be more inaccurate
@@ -140,7 +130,7 @@ void record_wav(void)
         strcpy(filename_suffix, "");
         sprintf(filename_suffix, "%d", i);
         strcat(filename_hole, "/");
-        strcat(filename_hole, filename_prefix);
+        strcat(filename_hole, CONFIG_FILENAME_PREFIX);
         strcat(filename_hole, filename_suffix);
         strcat(filename_hole, ".raw");
         if (stat(filename_hole, &st) != 0)
@@ -184,7 +174,7 @@ void record_wav(void)
         while (unsaved_time <= 25)
         {
             // Read the RAW samples from the microphone
-            i2s_read(CONFIG_EXAMPLE_I2S_CH, (char *)i2s_readraw_buff, SAMPLE_SIZE, &bytes_read, 100);
+            i2s_read(CONFIG_I2S_CH, (char *)i2s_readraw_buff, SAMPLE_SIZE, &bytes_read, 100);
             // Write the samples to the WAV file
             fwrite(i2s_readraw_buff, 1, bytes_read, f);
             unsaved_time++;
@@ -200,29 +190,28 @@ void init_microphone(void)
 {
     i2s_config_t i2s_config = {
         .mode = I2S_MODE_MASTER | I2S_MODE_RX,
-        .sample_rate = CONFIG_EXAMPLE_SAMPLE_RATE,
-        .bits_per_sample = I2S_BITS_PER_SAMPLE_24BIT,
+        .sample_rate = CONFIG_I2S_SAMPLE_RATE,
+        .bits_per_sample = CONFIG_I2S_BIT_SAMPLE,
         .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,
         .communication_format = I2S_COMM_FORMAT_STAND_I2S,
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL2,
         .dma_buf_count = 4,
         .dma_buf_len = 1024,
         .use_apll = true,
-        .fixed_mclk = 12288000,
     };
 
     // Set the pinout configuration
     i2s_pin_config_t pin_config = {
         .mck_io_num = I2S_PIN_NO_CHANGE,
-        .bck_io_num = I2S_BCK_IO,
-        .ws_io_num = I2S_WS_IO,
-        .data_out_num = I2S_DO_IO,
-        .data_in_num = I2S_DI_IO,
+        .bck_io_num = CONFIG_I2S_BCK_IO,
+        .ws_io_num = CONFIG_I2S_WS_IO,
+        .data_out_num = CONFIG_I2S_DO_IO,
+        .data_in_num = CONFIG_I2S_DI_IO,
     };
 
     // Call driver installation function before any I2S R/W operation.
-    ESP_ERROR_CHECK(i2s_driver_install(CONFIG_EXAMPLE_I2S_CH, &i2s_config, 0, NULL));
-    ESP_ERROR_CHECK(i2s_set_pin(CONFIG_EXAMPLE_I2S_CH, &pin_config));
+    ESP_ERROR_CHECK(i2s_driver_install(CONFIG_I2S_CH, &i2s_config, 0, NULL));
+    ESP_ERROR_CHECK(i2s_set_pin(CONFIG_I2S_CH, &pin_config));
 }
 
 static void check_battery_level(void *args)

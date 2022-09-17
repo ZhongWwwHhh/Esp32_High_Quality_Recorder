@@ -2,24 +2,56 @@ menu "Esp32_High_Quality_Recorder_main"
 
     menu "I2S MEMS MIC Configuration"
 
-        config EXAMPLE_I2S_CH
+        config I2S_CH
             int "I2S Channel Number"
             default 0
             help
                 Set the I2S channel number.
 
-        config EXAMPLE_SAMPLE_RATE
+        config I2S_SAMPLE_RATE
             int "Audio Sample Rate"
-            default 44100
+            default 48000
             help
                 Set the audio sample rate frequency. Usually 16000 or 44100 Hz.
 
-        config EXAMPLE_BIT_SAMPLE
+        config I2S_BIT_SAMPLE
             int "Audio Bit Sample"
-            default 16
+            default 24
             help
                 Define the number of bits for each sample. Default 16 bits per sample.
 
+        config I2S_BCK_IO
+            int "I2S_BCK_IO"
+            default 26
+
+        config I2S_WS_IO
+            int "I2S_WS_IO"
+            default 25
+
+        config I2S_DI_IO
+            int "I2S_DI_IO"
+            default 27
+
+        config I2S_DO_IO
+            int "I2S_DO_IO"
+            default -1
+
     endmenu
+
+    menu "LED Configuration"
+
+        config STATE_LED1_IO
+            int "STATE_LED1_IO"
+            default 22
+
+        config STATE_LED2_IO
+            int "STATE_LED2_IO"
+            default 23
+
+    endmenu
+
+    config FILENAME_PREFIX
+        string "FILENAME_PREFIX"
+        default "A_"
 
 endmenu
