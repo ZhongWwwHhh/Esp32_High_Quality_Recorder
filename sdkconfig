@@ -156,6 +156,7 @@ CONFIG_STATE_LED2_IO=23
 # end of LED Configuration
 
 CONFIG_FILENAME_PREFIX="A_"
+CONFIG_USE_BATTERY=y
 # end of Esp32_High_Quality_Recorder_main
 
 #

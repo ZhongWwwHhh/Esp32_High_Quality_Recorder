@@ -36,8 +36,7 @@ firmware version: v2.0-beta.0
 
 static const char *TAG = "Esp32_Mic";
 
-// mode with battery
-#define BATTERY_MODE
+
 
 // GPIO for leds
 #define STATE_LED1 CONFIG_STATE_LED1_IO
@@ -227,10 +226,10 @@ static void check_battery_level(void *args)
     adc_reading /= NO_OF_SAMPLES;
     ESP_LOGI(TAG, "Battery level is: %d", adc_reading);
 
-#ifdef BATTERY_MODE
+#ifdef CONFIG_USE_BATTERY
     if (adc_reading <= 2100)
     {
-        ESP_LOGI(TAG, "Battery level low. Power off. Please charge");
+        ESP_LOGW(TAG, "Battery level low. Power off. Please charge");
         usleep(1000000);
         esp_deep_sleep_start();
         return;

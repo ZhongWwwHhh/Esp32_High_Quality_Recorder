@@ -12,13 +12,13 @@ menu "Esp32_High_Quality_Recorder_main"
             int "Audio Sample Rate"
             default 48000
             help
-                Set the audio sample rate frequency. Usually 16000 or 44100 Hz.
+                Set the audio sample rate frequency. Usually 48000 Hz. And might be higher.
 
         config I2S_BIT_SAMPLE
             int "Audio Bit Sample"
             default 24
             help
-                Define the number of bits for each sample. Default 16 bits per sample.
+                Define the number of bits for each sample. 16 bits is enough. ICS43434 can support 24 bits.
 
         config I2S_BCK_IO
             int "I2S_BCK_IO"
@@ -53,5 +53,13 @@ menu "Esp32_High_Quality_Recorder_main"
     config FILENAME_PREFIX
         string "FILENAME_PREFIX"
         default "A_"
+        help
+            Default setting is "A_", so the filename will be a range from "A_1.raw" to "A_99.raw".
+
+    config USE_BATTERY
+        bool "USE_BATTERY"
+        default y
+        help
+            Use battery as power apply. Will enable battery level check.
 
 endmenu
