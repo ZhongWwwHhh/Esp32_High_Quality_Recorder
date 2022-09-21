@@ -11,7 +11,7 @@
 PCB design at: https://github.com/ZhongWwwHhh/Esp32_High_Quality_Recorder_PCB
 support esp32 (esp32s2 and esp32s3 might can be supported, but I don't have those devices)
 require esp-idf v4.4.2
-firmware version: v2.0-beta.0
+firmware version: v2.0-beta.1
 */
 
 #include <stdio.h>
@@ -33,10 +33,10 @@ firmware version: v2.0-beta.0
 #include "esp_timer.h"
 #include "driver/adc.h"
 #include "esp_sleep.h"
+#include "esp_ota_ops.h"
+#include "esp_partition.h"
 
 static const char *TAG = "Esp32_Mic";
-
-
 
 // GPIO for leds
 #define STATE_LED1 CONFIG_STATE_LED1_IO
@@ -264,7 +264,7 @@ void init_battery_adc(void)
     ESP_ERROR_CHECK(esp_timer_start_periodic(periodic_timer, 600000000));
 }
 
-static void configure_led(void)
+void configure_led(void)
 {
     gpio_reset_pin(STATE_LED1);
     gpio_reset_pin(STATE_LED2);
@@ -275,6 +275,60 @@ static void configure_led(void)
     /* light led1 */
     gpio_set_level(STATE_LED1, 1);
     gpio_set_level(STATE_LED2, 0);
+}
+
+int ota_update(void)
+{
+    // Create new WAV file
+    ESP_LOGI(TAG, "Detect update file");
+    FILE *f_update = fopen("/sdcard/update.bin", "r");
+
+    // starting without update is normal situation
+    if (f_update == NULL)
+    {
+        ESP_LOGI(TAG, "There is no update file in SD card. Starting normally.");
+        return ESP_OK;
+    }
+
+    ESP_LOGW(TAG, "Found update file. Starting update. Do not power off.");
+    gpio_set_level(STATE_LED1, 1);
+    gpio_set_level(STATE_LED2, 1);
+
+    // get partition
+    esp_ota_handle_t update_handle = 0;
+    const esp_partition_t *update_partition = esp_ota_get_next_update_partition(NULL);
+    assert(update_partition != NULL);
+    ESP_LOGW(TAG, "Writing to partition subtype %d at offset 0x%x",
+             update_partition->subtype, update_partition->address);
+
+    // flash
+    size_t binary_file_length = 0;
+    size_t update_buffsize = 1024;
+    char update_data[1025] = {0};
+
+    esp_ota_begin(update_partition, OTA_WITH_SEQUENTIAL_WRITES, &update_handle);
+
+    while (1)
+    {
+        size_t update_read_length = fread(update_data, 1, update_buffsize, f_update);
+        if (update_read_length > 0)
+        {
+            esp_ota_write(update_handle, (const void *)update_data, update_read_length);
+            binary_file_length += update_read_length;
+            ESP_LOGW(TAG, "Written image length %d", binary_file_length);
+        }
+        else
+        {
+            fclose(f_update);
+            remove("/sdcard/update.bin");
+            esp_ota_end(update_handle);
+            esp_ota_set_boot_partition(update_partition);
+
+            ESP_LOGW(TAG, "Restarting");
+            esp_restart();
+            return -1;
+        }
+    }
 }
 
 void app_main(void)
@@ -289,8 +343,13 @@ void app_main(void)
     // Mount the SDCard for recording the audio file
     mount_sdcard();
 
+    // Try to update
+    ota_update();
+
     // Init the PDM digital microphone
     init_microphone();
+
+    esp_ota_mark_app_valid_cancel_rollback();
 
     ESP_LOGI(TAG, "Starting recording");
     // Start Recording
