@@ -7,7 +7,7 @@ Designed with Kicad.
 ## Usage
 Install ESP-IDF then compile this project.  
 Or flash released firmware to esp32 directly.  
-~~As for update, rename the firmware to `update.bin` and save it into TF(SD) card. When next boot, new firmware will be flash to esp32 by OTA function.~~ `coming soon`
+As for update, rename the firmware to `update.bin` and save it into TF(SD) card. When next boot, new firmware will be flash to esp32 by OTA function.  
 
 ## Power-on Order
 When power on, led1 will be set high immediately.  
