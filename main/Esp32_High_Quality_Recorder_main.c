@@ -11,7 +11,7 @@
 PCB design at: https://github.com/ZhongWwwHhh/Esp32_High_Quality_Recorder_PCB
 support esp32 (esp32s2 and esp32s3 might can be supported, but I don't have those devices)
 require esp-idf v4.4.2
-firmware version: v2.0-beta.1
+firmware version: v2.0
 */
 
 #include <stdio.h>

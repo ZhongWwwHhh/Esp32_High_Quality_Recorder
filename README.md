@@ -7,12 +7,19 @@ Designed with Kicad.
 ## Usage
 Install ESP-IDF then compile this project.  
 Or flash released firmware to esp32 directly.  
-As for update, rename the firmware to `update.bin` and save it into TF(SD) card. When next boot, new firmware will be flash to esp32 by OTA function.  
+As for update, rename the firmware to `update.bin` and save it into TF(SD) card. When next boot, new firmware will be flashed to esp32 by OTA function.  
 
 ## Power-on Order
+
+### General startup
 When power on, led1 will be set high immediately.  
-If `USE_BATTERY` has been ticked in menuconfig, it will check battery level to pursure the power supply is higher than 3.3 voltage. Esp32 will drop to deep sleep since detecting power insufficient. During deep sleep, all leds will be off.  
+If `USE_BATTERY` has been ticked in menuconfig, it will check battery level to pursure the power supply is higher than 3.3 voltage(but it isn't so accurate). Esp32 will drop to deep sleep once detecting power insufficient. During deep sleep, all leds will be off.  
 Recording will start after momunting TF card and opening record file. Led1 will be set low.  
 The file system get written per half second. Every time the file has deen saved, led2 would change its state.  
 
 **So if it is running correctly, led1 is off and led2 will blink.**  
+
+### OTA update from TF card
+After momunt TF card, it will try finding the file named `update.bin`. If there is a file named as same, OTA would start.  
+The new firmware will be flashed into one of the two ota partitions automatically. Then delete the file and reboot to new firmware.  
+**Be careful that there is no file also named `update.bin` in TF card to avoid fault.**
