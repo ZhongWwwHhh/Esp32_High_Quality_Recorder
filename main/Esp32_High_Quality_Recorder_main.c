@@ -11,7 +11,7 @@
 PCB design at: https://github.com/ZhongWwwHhh/Esp32_High_Quality_Recorder_PCB
 support esp32 (esp32s2 and esp32s3 might can be supported, but I don't have those devices)
 require esp-idf v4.4.2
-firmware version: v2.0
+firmware version: v2.0-fix.1
 */
 
 #include <stdio.h>
@@ -46,7 +46,7 @@ static const char *TAG = "Esp32_Mic";
 #define SAMPLE_SIZE (CONFIG_I2S_BIT_SAMPLE * 1024)
 
 // setting of adc for battery level
-#define NO_OF_SAMPLES 3                             // Multisampling, set less to reduce occupancy, may be more inaccurate
+#define NO_OF_SAMPLES 5                             // Multisampling, set less to reduce occupancy, may be more inaccurate
 static const adc_channel_t channel = ADC_CHANNEL_6; // GPIO34 if ADC1, GPIO14 if ADC2
 static const adc_bits_width_t width = ADC_WIDTH_BIT_12;
 static const adc_atten_t atten = ADC_ATTEN_DB_11;
@@ -114,7 +114,7 @@ void mount_sdcard(void)
     ESP_LOGI(TAG, "Filesystem mounted");
 }
 
-void record_wav(void)
+void record(void)
 {
     // Use POSIX and C standard library functions to work with files.
     ESP_LOGI(TAG, "Detect file");
@@ -160,7 +160,7 @@ void record_wav(void)
     }
     usleep(500000);
 
-    gpio_set_level(STATE_LED1, 0);
+    gpio_set_level(STATE_LED1, 1);
     gpio_set_level(STATE_LED2, 1);
 
     // Start recording
@@ -353,5 +353,5 @@ void app_main(void)
 
     ESP_LOGI(TAG, "Starting recording");
     // Start Recording
-    record_wav();
+    record();
 }
